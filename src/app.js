@@ -2,37 +2,34 @@ const express = require("express");
 
 const app = express();
 
-// app.use("/", (req, res) => {
-//   res.send("Hello from server");
-// });
-app.use(
-  "/route",
-  (req, res, next) => {
-    console.log("User 1");
-    next();
-  },
-  (req, res) => {
-    console.log("user 2");
-    res.send("Hiiiii");
+const User = require("./models/user");
+
+const { connectDb } = require("./config/database");
+
+app.post("/signup", async (req, res) => {
+  //creating the instance of new user
+  const user = new User({
+    firstName: "salaar",
+    lastName: "Devaratha",
+    emailId: "salaar@gmail.com",
+    age: 35,
+    password: "Salaar123",
+  });
+  try {
+    await user.save();
+    res.send("New User is created successfully");
+  } catch (err) {
+    res.status(400).send("Error saving the user" + err.message);
   }
-);
-
-app.get("/user/:username/:name/:password", (req, res) => {
-  //logic for get
-  console.log(req.params);
-  res.send("Get from the server");
-});
-app.post("/user", (req, res) => {
-  res.send("Post from the server (updated");
 });
 
-// app.use("/home", (req, res) => {
-//   res.send("That' how different requests are handled properly");
-// });
-// app.use("/test", (req, res) => {
-//   res.send("Hello from testtttt");
-// });
-
-app.listen(3000, () => {
-  console.log("Server is running successfully");
-});
+connectDb()
+  .then(() => {
+    console.log("Successfully connected to the database");
+    app.listen(3000, () => {
+      console.log("Server is running successfully");
+    });
+  })
+  .catch((err) => {
+    console.log("database not connected");
+  });
