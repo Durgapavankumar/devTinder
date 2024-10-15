@@ -6,6 +6,7 @@ const User = require("./models/user");
 
 const { connectDb } = require("./config/database");
 const { after } = require("node:test");
+const { Error } = require("mongoose");
 
 app.use(express.json());
 
@@ -54,11 +55,21 @@ app.delete("/user", async (req, res) => {
   }
 });
 
-app.patch("/user", async (req, res) => {
-  const userId = req.body.userId;
+app.patch("/user/:userId", async (req, res) => {
+  const userId = req.params?.userId;
   const data = req.body;
   try {
     //const user = await User.findByIdAndUpdate( userId , data, {returnDocument: "after",});
+    const allowedUpdates = ["photoURL", "age", "skills", "about", "gender"];
+    const isUpdatedAllowed = Object.keys(data).every((k) =>
+      allowedUpdates.includes(k)
+    );
+    if (!isUpdatedAllowed) {
+      throw new Error("Update is restricted");
+    }
+    if (data.skills.length > 10) {
+      throw new Error("Skills shouldn't be more than 10");
+    }
     const user = await User.findByIdAndUpdate({ _id: userId }, data, {
       returnDocument: "after",
       runValidators: true,
