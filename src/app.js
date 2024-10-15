@@ -5,6 +5,7 @@ const app = express();
 const User = require("./models/user");
 
 const { connectDb } = require("./config/database");
+const { after } = require("node:test");
 
 app.use(express.json());
 
@@ -49,6 +50,21 @@ app.delete("/user", async (req, res) => {
     //const user= await User.findByIdAndDelete({_id:userId}) // above line is a simple way to write
     res.send("User deleted Successfully");
   } catch {
+    res.status(404).send("Something went wrong");
+  }
+});
+
+app.patch("/user", async (req, res) => {
+  const userId = req.body.userId;
+  const data = req.body;
+  try {
+    //const user = await User.findByIdAndUpdate( userId , data, {returnDocument: "after",});
+    const user = await User.findByIdAndUpdate({ _id: userId }, data, {
+      returnDocument: "after",
+    });
+    console.log(user);
+    res.send("User updated successfully");
+  } catch (err) {
     res.status(404).send("Something went wrong");
   }
 });
