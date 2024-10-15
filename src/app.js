@@ -42,7 +42,16 @@ app.get("/feed", async (req, res) => {
     res.status(404).send("Error not found");
   }
 });
-
+app.delete("/user", async (req, res) => {
+  const userId = req.body.userId;
+  try {
+    const user = await User.findByIdAndDelete(userId);
+    //const user= await User.findByIdAndDelete({_id:userId}) // above line is a simple way to write
+    res.send("User deleted Successfully");
+  } catch {
+    res.status(404).send("Something went wrong");
+  }
+});
 connectDb()
   .then(() => {
     console.log("Successfully connected to the database");
