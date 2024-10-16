@@ -8,10 +8,13 @@ const bcrypt = require("bcrypt");
 const { connectDb } = require("./config/database");
 const { after } = require("node:test");
 const { Error } = require("mongoose");
+const jwt = require("jsonwebtoken");
 
 const { validateSignUpData } = require("./utils/uservalidation");
+const cookieParser = require("cookie-parser");
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
   try {
@@ -40,17 +43,46 @@ app.post("/signup", async (req, res) => {
 app.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
-    const user = await User.findOne({ emailId, emailId });
+    const user = await User.findOne({ emailId });
     if (!user) {
       throw new Error("Invalid Credentials");
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
+    //validation and creating cookie and token using cookie parser and json web token
     if (isPasswordValid) {
+      const token = await jwt.sign({ _id: user._id }, "Durga@123");
+      console.log(token);
+      res.cookie("token", token);
       res.send("Successfully logged");
     } else {
       throw new Error("Invalid Credentials");
     }
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
+  }
+});
+
+app.get("/profile", async (req, res) => {
+  try {
+    // Extract token from the cookies using `req.cookies`
+    const token = req.cookies.token;
+
+    if (!token) {
+      throw new Error("Invalid token");
+    }
+
+    // Verify the token
+    const decodedMessage = await jwt.verify(token, "Durga@123");
+    const { _id } = decodedMessage;
+
+    // Find the user by decoded _id
+    const user = await User.findById(_id);
+    if (!user) {
+      throw new Error("User doesn't exist");
+    }
+
+    // Send user information if everything is valid
+    res.send(user);
   } catch (err) {
     res.status(400).send("Error: " + err.message);
   }
