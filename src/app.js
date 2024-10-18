@@ -11,6 +11,7 @@ const { Error } = require("mongoose");
 const jwt = require("jsonwebtoken");
 
 const { validateSignUpData } = require("./utils/uservalidation");
+const { userAuth } = require("./middleware/auth");
 const cookieParser = require("cookie-parser");
 
 app.use(express.json());
@@ -47,12 +48,14 @@ app.post("/login", async (req, res) => {
     if (!user) {
       throw new Error("Invalid Credentials");
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await user.validatePassword(password);
     //validation and creating cookie and token using cookie parser and json web token
     if (isPasswordValid) {
-      const token = await jwt.sign({ _id: user._id }, "Durga@123");
+      const token = await user.getJWT();
       console.log(token);
-      res.cookie("token", token);
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+      });
       res.send("Successfully logged");
     } else {
       throw new Error("Invalid Credentials");
@@ -62,90 +65,19 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/profile", async (req, res) => {
+app.get("/profile", userAuth, async (req, res) => {
   try {
-    // Extract token from the cookies using `req.cookies`
-    const token = req.cookies.token;
+    const user = req.user;
 
-    if (!token) {
-      throw new Error("Invalid token");
-    }
-
-    // Verify the token
-    const decodedMessage = await jwt.verify(token, "Durga@123");
-    const { _id } = decodedMessage;
-
-    // Find the user by decoded _id
-    const user = await User.findById(_id);
-    if (!user) {
-      throw new Error("User doesn't exist");
-    }
-
-    // Send user information if everything is valid
     res.send(user);
   } catch (err) {
     res.status(400).send("Error: " + err.message);
   }
 });
 
-app.get("/email", async (req, res) => {
-  const userEmail = req.body.emailId;
-  try {
-    console.log(userEmail);
-    const user = await User.find({ emailId: userEmail });
-    if (!user) {
-      res.status(404).send("Error not found");
-    } else {
-      res.send(user);
-    }
-  } catch (err) {
-    res.send("Error finding the user");
-  }
-});
-
-app.get("/feed", async (req, res) => {
-  try {
-    const users = await User.find({});
-    res.send(users);
-  } catch (err) {
-    res.status(404).send("Error not found");
-  }
-});
-app.delete("/user", async (req, res) => {
-  const userId = req.body.userId;
-  try {
-    const user = await User.findByIdAndDelete(userId);
-    //const user= await User.findByIdAndDelete({_id:userId}) // above line is a simple way to write
-    res.send("User deleted Successfully");
-  } catch {
-    res.status(404).send("Something went wrong");
-  }
-});
-
-app.patch("/user/:userId", async (req, res) => {
-  const userId = req.params?.userId;
-  const data = req.body;
-  try {
-    //const user = await User.findByIdAndUpdate( userId , data, {returnDocument: "after",});
-    const allowedUpdates = ["photoURL", "age", "skills", "about", "gender"];
-    const isUpdatedAllowed = Object.keys(data).every((k) =>
-      allowedUpdates.includes(k)
-    );
-    if (!isUpdatedAllowed) {
-      throw new Error("Update is restricted");
-    }
-    if (data.skills.length > 10) {
-      throw new Error("Skills shouldn't be more than 10");
-    }
-    const user = await User.findByIdAndUpdate({ _id: userId }, data, {
-      returnDocument: "after",
-      runValidators: true,
-    });
-    console.log(user);
-    res.send("User updated successfully");
-  } catch (err) {
-    res.status(404).send("Something went wrong");
-  }
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
+  const user = req.user;
+  res.send(user.firstName + " Connection request was sent successfully");
 });
 connectDb()
   .then(() => {
