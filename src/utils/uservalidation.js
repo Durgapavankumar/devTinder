@@ -11,4 +11,27 @@ const validateSignUpData = (req) => {
   }
 };
 
-module.exports = { validateSignUpData };
+const validateEditProfileData = (req) => {
+  const editableData = [
+    "skills",
+    "firstName",
+    "lastName",
+    "age",
+    "about",
+    "gender",
+    "profileURL",
+  ];
+
+  // Use .every() to check if all keys in the request body are allowed to be edited
+  const isEditAllowed = Object.keys(req.body).every((key) =>
+    editableData.includes(key)
+  );
+
+  if (!isEditAllowed) {
+    throw new Error("Invalid Edit Request!");
+  }
+
+  return true;
+};
+
+module.exports = { validateSignUpData, validateEditProfileData };
